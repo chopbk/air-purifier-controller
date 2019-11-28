@@ -1,3 +1,4 @@
+
 // from: https://raw.githubusercontent.com/lprhodes/homebridge-broadlink-rm/master/helpers/getDevice.js
 const BroadlinkJS = require("./broadlink");
 //const BroadlinkJS = require("./broadlink");
@@ -5,7 +6,8 @@ const broadlink = new BroadlinkJS();
 const EventEmitter = require("events");
 const myEmitter = new EventEmitter();
 const logger = require("./../logger");
-const awsDevice = require("../aws-iot/device-publish");
+//const awsDevice = require("../aws-iot/device-publish");
+const mqttClient = require("../mqtt/client-publish");
 var devices = []
 var deviceInfos = [];
 
@@ -46,7 +48,8 @@ const discoverDevicesLoop = (count = 0) => {
 
     //Try to update device infos to mqtt
     try {
-      awsDevice.awsPublishDeviceInfos(deviceInfos);
+      mqttClient.mqttPublishDeviceInfos(deviceInfos);
+      //awsDevice.awsPublishDeviceInfos(deviceInfos);
     } catch (error) {
       logger.error("power publish error", error);
     }
@@ -107,7 +110,8 @@ myEmitter.on("device", discoveredDevice => {
     discoveredDevice.state.spState = data;
     logger.debug(`Broadlink Power ${payload}`);
     try {
-      awsDevice.awsPublishPower(payload);
+      mqttClient.mqttPublishPower(payload);
+      //awsDevice.awsPublishPower(payload);
     } catch (error) {
       logger.error("power publish error", error);
     }finally{
@@ -129,7 +133,8 @@ myEmitter.on("device", discoveredDevice => {
     discoveredDevice.state.currentState.clientStatus = speed;
     logger.debug(`Broadlink speed ${speed} in energy ${data})`);
     try {
-      awsDevice.awsPublishSpeed(speed);
+      mqttClient.mqttPublishSpeed(speed);
+      //awsDevice.awsPublishSpeed(speed);
     } catch (error) {
       logger.error("energy publish error", error);
     }finally{

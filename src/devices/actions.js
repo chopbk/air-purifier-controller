@@ -7,7 +7,8 @@ const logger = require("./../logger");
 const cfg = require("./../config");
 const rmHandles = require("./rm-handles");
 const spHandles = require("./sp-handles");
-const awsDevice = require("../aws-iot/device-publish");
+//const awsDevice = require("../aws-iot/device-publish");
+const mqttClient = require("../mqtt/client-publish");
 // -------------------------------------
 //         Application Actions
 // -------------------------------------
@@ -90,7 +91,8 @@ function runAction(action, topic, origin) {
                 })
                 .then(spHandles.setPowerAction)    
                 .then( () => {
-                    awsDevice.awsPublishPower("ON");
+                    //awsDevice.awsPublishPower("ON");
+                    mqttClient.mqttPublishPower("ON");
                 });
         case "checkpower":      
             return prepareAction({
@@ -311,7 +313,8 @@ const listFilestructure = dir => {
 };
 const getDeviceInfos = () => 
     new Promise((resolve, reject) => {
-        awsDevice.awsPublishDeviceInfos(Broadlink.deviceInfos);
+        mqttClient.mqttPublishDeviceInfos(Broadlink.deviceInfos);
+        //awsDevice.awsPublishDeviceInfos(Broadlink.deviceInfos);
         resolve(Broadlink.deviceInfos);
     });
 
