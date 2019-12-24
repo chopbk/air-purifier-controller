@@ -7,7 +7,8 @@ const logger = require("./../logger");
 const cfg = require("./../config");
 const rmHandles = require("./rm-handles");
 const spHandles = require("./sp-handles");
-const awsDevice = require("../aws-iot/device-publish");
+//const awsDevice = require("../aws-iot/device-publish");
+const mqttClient = require("../mqtt/client-publish");
 // -------------------------------------
 //         Application Actions
 // -------------------------------------
@@ -23,10 +24,10 @@ function runAction(action, topic, origin) {
     switch (actionMode) {
         case "recordir":
             return prepareAction({
-                    action,
-                    topic,
-                    origin
-                })
+                action,
+                topic,
+                origin
+            })
                 .then(rmHandles.deviceEnterLearningIR)
                 .then(rmHandles.recordIR)
                 .then(rmHandles.deviceExitLearningIR)
@@ -47,10 +48,10 @@ function runAction(action, topic, origin) {
                 });
         case "recordrf":
             return prepareAction({
-                    action,
-                    topic,
-                    origin
-                })
+                action,
+                topic,
+                origin
+            })
                 .then(rmHandles.deviceEnterLearningRFSweep)
                 .then(rmHandles.recordRFFrequence)
                 .then(rmHandles.deviceEnterLearningIR)
@@ -70,63 +71,64 @@ function runAction(action, topic, origin) {
                 });
         case "play":
             return prepareAction({
-                    action,
-                    topic,
-                    origin
-                })
+                action,
+                topic,
+                origin
+            })
                 .then(rmHandles.playAction);
         case "temperature":
             return prepareAction({
-                    action,
-                    topic,
-                    origin
-                })
+                action,
+                topic,
+                origin
+            })
                 .then(queryTemperature);
         case "setpower":
             return prepareAction({
-                    action,
-                    topic,
-                    origin
-                })
-                .then(spHandles.setPowerAction)    
-                .then( () => {
-                    awsDevice.awsPublishPower("ON");
+                action,
+                topic,
+                origin
+            })
+                .then(spHandles.setPowerAction)
+                .then(() => {
+                    //awsDevice.awsPublishPower("ON");
+                    mqttClient.awsPublishPower("ON");
                 });
-        case "checkpower":      
+        case "checkpower":
             return prepareAction({
                 action,
                 topic,
                 origin
             })
-            .then(spHandles.getPowerAction)
-            .then( (data) => {
-                logger.info("Done get Power action", data);
-            })
-        case "checkspeed":      
+                .then(spHandles.getPowerAction)
+                .then((data) => {
+                    logger.info("Done get Power action", data);
+                })
+        case "checkspeed":
             return prepareAction({
                 action,
                 topic,
                 origin
             })
-            .then(spHandles.getEnergyAction)
-            .then( (data) => {
-                logger.info("Done get speed action");
-            })
-        case "getinfo": 
+                .then(spHandles.getEnergyAction)
+                .then((data) => {
+                    logger.info("Done get speed action");
+                })
+        case "getinfo":
             return getDeviceInfos();
-		case "getairthinxmode":
-			if(topic.indexOf(cfg.mqtt.subscribeBasePath+ "/airthinx/getcurrentmode") >=0)
-				return getAirthinxMode();
-			break;
-		case "setairthinxmode":
-			if(topic.indexOf(cfg.mqtt.subscribeBasePath+ "/airthinx/setmode") >=0){
-				//parse action to get mode: auto = false; manual = true
-				 if (action.indexOf("-") !== -1){
-					let mode = action.substring(action.indexOf("-")+1, action.length);
-					return setAirthinxMode(mode);
-				 }
-			}
-			 break;
+        case "getairthinxmode":
+            if (topic.indexOf(cfg.mqtt.subscribeBasePath + "/airthinx/getcurrentmode") >= 0)
+                return getAirthinxMode();
+            break;
+        case "setairthinxmode":
+            if (topic.indexOf(cfg.mqtt.subscribeBasePath + "/airthinx/setmode") >= 0) {
+                //parse action to get mode: auto = false; manual = true
+                if (action.indexOf("-") !== -1) {
+                    let mode = action.substring(action.indexOf("-") + 1, action.length);
+                    return setAirthinxMode(mode);
+                }
+            }
+            break;
         default:
             logger.error(`Action ${action} doesn't exists`);
             return handleActionError(`Action ${action} doesn't exists`);
@@ -292,8 +294,8 @@ const listFilestructure = dir => {
                                             return reject(err);
                                         }
                                         Promise.all(
-                                                files.map(child => walk(path.join(entry, child)))
-                                            )
+                                            files.map(child => walk(path.join(entry, child)))
+                                        )
                                             .then(children => {
                                                 resolve({
                                                     path: entry,
@@ -319,9 +321,10 @@ const listFilestructure = dir => {
 
     return walk(dir);
 };
-const getDeviceInfos = () => 
+const getDeviceInfos = () =>
     new Promise((resolve, reject) => {
-        awsDevice.awsPublishDeviceInfos(Broadlink.deviceInfos);
+        //awsDevice.awsPublishDeviceInfos(Broadlink.deviceInfos);
+        mqttClient.mqttPublishDeviceInfos(Broadlink.deviceInfos);
         resolve(Broadlink.deviceInfos);
     });
 
@@ -338,14 +341,16 @@ const scanDevice = (count = cfg.numOfDiscover) => {
 }
 
 const getAirthinxMode = () => {
-	let mode = Broadlink.getAirthinxMode();
-    awsDevice.awsPublishAirthinxMode(mode);
-	return new Promise((resolve, reject) => resolve(mode));
+    let mode = Broadlink.getAirthinxMode();
+    //awsDevice.awsPublishAirthinxMode(mode);
+    mqttClient.mqttPublishAirthinxMode(mode);
+    return new Promise((resolve, reject) => resolve(mode));
 }
 
 const setAirthinxMode = (mode) => {
     Broadlink.setAirthinxMode(mode);
-	awsDevice.awsPublishAirthinxMode(mode);
+    //awsDevice.awsPublishAirthinxMode(mode);
+    mqttClient.mqttPublishAirthinxMode(mode);
     return new Promise((resolve, reject) => resolve(1));
 }
 
@@ -356,5 +361,5 @@ module.exports = {
     listFilestructure,
     getDevicesInfo,
     scanDevice
-}    
+}
 var Broadlink = require("./device");

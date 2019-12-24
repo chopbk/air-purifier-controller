@@ -5,7 +5,8 @@ const broadlink = new BroadlinkJS();
 const EventEmitter = require("events");
 const myEmitter = new EventEmitter();
 const logger = require("./../logger");
-const awsDevice = require("../aws-iot/device-publish");
+//const awsDevice = require("../aws-iot/device-publish");
+const mqttClient = require("../mqtt/client-publish");
 var devices = []
 var deviceInfos = [];
 
@@ -21,8 +22,8 @@ let cfg = require("./../config");
 
 const discoverDevices = (count = 2) => {
   //Delete all devices have found
-  devices.splice(0,devices.length);
-  deviceInfos.splice(0,deviceInfos.length);
+  devices.splice(0, devices.length);
+  deviceInfos.splice(0, deviceInfos.length);
   if (discovering) return;
   discovering = true;
   discoverDevicesLoop(count);
@@ -46,7 +47,8 @@ const discoverDevicesLoop = (count = 0) => {
 
     //Try to update device infos to mqtt
     try {
-      awsDevice.awsPublishDeviceInfos(deviceInfos);
+      //awsDevice.awsPublishDeviceInfos(deviceInfos);
+      mqttClient.mqttPublishDeviceInfos(deviceInfos);
     } catch (error) {
       logger.error("power publish error", error);
     }
@@ -95,13 +97,13 @@ broadlink.on("deviceReady", device => {
 
 myEmitter.on("device", discoveredDevice => {
   logger.info("new device");
-  
+
   devices.push(discoveredDevice);
   logger.info("Broadlink Found Device", discoveredDevice.host);
- 
-   discoveredDevice.removeAllListeners("temperature");
-    discoveredDevice.removeAllListeners("power");
-   discoveredDevice.removeAllListeners("energy");
+
+  discoveredDevice.removeAllListeners("temperature");
+  discoveredDevice.removeAllListeners("power");
+  discoveredDevice.removeAllListeners("energy");
 
   discoveredDevice.on("temperature", temperature => {
     logger.debug(`Broadlink Temperature ${temperature}`, discoveredDevice.host);
@@ -113,13 +115,14 @@ myEmitter.on("device", discoveredDevice => {
     discoveredDevice.state.spState = data;
     logger.debug(`Broadlink Power ${payload}`);
     try {
-      awsDevice.awsPublishPower(payload);
+      // awsDevice.awsPublishPower(payload);
+      mqttClient.mqttPublishPower(payload);
     } catch (error) {
       logger.error("power publish error", error);
-    }finally{
-		discoveredDevice.checkPower = false;
-		//discoveredDevice.mutex.release("Get Power Done");
-	}
+    } finally {
+      discoveredDevice.checkPower = false;
+      //discoveredDevice.mutex.release("Get Power Done");
+    }
   });
 
   discoveredDevice.on("energy", data => { //function return when check energy 
@@ -129,20 +132,21 @@ myEmitter.on("device", discoveredDevice => {
     else if (data < cfg.smartplug.MEDIUM) speed = 1;
     else if (data < cfg.smartplug.HIGH) speed = 2;
     else speed = 3;
-	if (discoveredDevice.state.currentState.clientStatus != speed) {
-		discoveredDevice.state.currentState.time = new Date().getTime();
-	}
+    if (discoveredDevice.state.currentState.clientStatus != speed) {
+      discoveredDevice.state.currentState.time = new Date().getTime();
+    }
     discoveredDevice.state.currentState.clientStatus = speed;
     logger.debug(`Broadlink speed ${speed} in energy ${data})`);
     try {
       awsDevice.awsPublishSpeed(speed);
+      mqttDevice.mqttPublishSpeed(speed);
     } catch (error) {
       logger.error("energy publish error", error);
-    }finally{
-		discoveredDevice.regularCheck = false;
-		//discoveredDevice.mutex.release("Get Energy Done");
-	}
-});
+    } finally {
+      discoveredDevice.regularCheck = false;
+      //discoveredDevice.mutex.release("Get Energy Done");
+    }
+  });
 
   /*
   // IR or RF signal found
@@ -174,16 +178,16 @@ myEmitter.on("discoverCompleted", numOfDevice => {
 getCurrentAirthinxState(devices);
 
 const setAirthinxMode = (mode) => {
-    setCurrentAirthinxMode(mode);
+  setCurrentAirthinxMode(mode);
 }
 
 const getAirthinxMode = () => {
-    return getCurrentAirthinxMode();
+  return getCurrentAirthinxMode();
 }
 module.exports = {
   discoverDevices: discoverDevices,
   devices: devices,
   deviceInfos: deviceInfos,
-setAirthinxMode:setAirthinxMode,
-getAirthinxMode: getAirthinxMode
+  setAirthinxMode: setAirthinxMode,
+  getAirthinxMode: getAirthinxMode
 };

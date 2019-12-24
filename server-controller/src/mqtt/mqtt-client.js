@@ -12,7 +12,9 @@ const mqtt = require("mqtt");
 // E.g. broadlink/#
 var mqttOptions = cfg.mqtt;
 logger.info("MQTT Options", mqttOptions);
-var mqttClient = mqtt.connect("", mqttOptions);
+mqttOptions.clientId = 'mqttjs_' + Math.random().toString(16).substr(2, 8);
+
+var mqttClient = mqtt.connect(mqttOptions);
 mqttClient.on("connect", function (connack) {
   logger.info("MQTT Connected", connack);
   // listen to actions
