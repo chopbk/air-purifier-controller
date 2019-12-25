@@ -22,7 +22,7 @@ var mqttPublishSpeed = (speed) => {
 //Publish speed to mqtt local
 var mqttPublishDeviceInfos = (data) => {
     try {
-        mqttClient.publish(`${mqttOptions.subscribeBasePath}-stat/devices/info`, JSON.stringify(data));
+        mqttClient.publish(`${mqttOptions.subscribeBasePath}-stat/airpurifier/info`, JSON.stringify(data));
     } catch (error) {
         logger.error("CLOUD IOT MQTT Publish Device Infos Failed", error);
     }

@@ -138,8 +138,8 @@ myEmitter.on("device", discoveredDevice => {
     discoveredDevice.state.currentState.clientStatus = speed;
     logger.debug(`Broadlink speed ${speed} in energy ${data})`);
     try {
-      awsDevice.awsPublishSpeed(speed);
-      mqttDevice.mqttPublishSpeed(speed);
+      //awsDevice.awsPublishSpeed(speed);
+      mqttClient.mqttPublishSpeed(speed);
     } catch (error) {
       logger.error("energy publish error", error);
     } finally {
